@@ -8,7 +8,6 @@ st.title("Wyszukiwanie duplikatów w kolumnie Task Name")
 uploaded_file = st.file_uploader("Wgraj plik CSV (UTF-8)", type=["csv"])
 
 if uploaded_file:
-    # Wczytanie danych
     try:
         df = pd.read_csv(uploaded_file, encoding='utf-8')
     except Exception as e:
@@ -23,28 +22,28 @@ if uploaded_file:
     st.dataframe(df)
 
     # Czyszczenie wartości: usunięcie białych znaków i zamiana na małe litery
-    df['Task Name Clean'] = df['Task Name'].astype(str).str.replace(r"\s+", "", regex=True).str.lower()
+    df['Task Name Clean'] = (
+        df['Task Name']
+        .astype(str)
+        .str.replace(r"\s+", "", regex=True)
+        .str.lower()
+    )
 
-    # Policz wystąpienia
+    # Policz wystąpienia i wyłuskaj duplikaty
     counts = df['Task Name Clean'].value_counts()
     duplicates = counts[counts > 1]
 
     if not duplicates.empty:
         # Przygotowanie DataFrame duplikatów
-        dup_df = (
-            duplicates
-            .rename_axis('Task Name')
-            .reset_index(name='Count')
-        )
+        dup_df = duplicates.rename_axis('Task Name').reset_index(name='Count')
 
         st.subheader("Znalezione duplikaty")
         st.dataframe(dup_df)
 
-        # Przygotowanie pliku Excel do pobrania
+        # Generowanie pliku Excel do pobrania
         output = BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
             dup_df.to_excel(writer, index=False, sheet_name='Duplikaty')
-            writer.save()
         output.seek(0)
 
         st.download_button(
